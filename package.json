@@ -1,0 +1,11 @@
+{
+  "name": "blockchain-consensus-simulator",
+  "version": "1.0.0",
+  "description": "Interactive blockchain consensus mechanism simulator with PoW, PoS, and Fork Resolution",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
