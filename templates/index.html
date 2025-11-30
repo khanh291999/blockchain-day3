@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Consensus Simulator | PoW, PoS, Fork Resolution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-in-out',
+                        'block-appear': 'blockAppear 0.5s ease-in-out',
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        slideIn: {
+                            '0%': { opacity: '0', transform: 'translateX(-20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' },
+                        },
+                        blockAppear: {
+                            '0%': { opacity: '0', transform: 'scale(0.9)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-800 min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white/95 backdrop-blur-lg rounded-3xl p-8 md:p-12 mb-8 shadow-2xl">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3">
+                    ⛓️ Blockchain Consensus Simulator
+                </h1>
+                <p class="text-gray-600 text-lg md:text-xl">Mô phỏng trực quan các cơ chế đồng thuận blockchain</p>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap gap-4 mb-8">
+            <button class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onclick="switchTab('pow')">
+                <span class="text-2xl">⛏️</span>
+                <span>Proof of Work</span>
+            </button>
+            <button class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-5 bg-white/95 backdrop-blur-lg text-gray-700 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onclick="switchTab('pos')">
+                <span class="text-2xl">💰</span>
+                <span>Proof of Stake</span>
+            </button>
+            <button class="tab-btn flex-1 min-w-[200px] flex items-center justify-center gap-3 px-6 py-5 bg-white/95 backdrop-blur-lg text-gray-700 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1" onclick="switchTab('fork')">
+                <span class="text-2xl">🔱</span>
+                <span>Fork Resolution</span>
+            </button>
+        </div>
+
+        <!-- PoW Tab Content -->
+        <div id="pow-tab" class="tab-content animate-fade-in">
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 mb-6 shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">⛏️ Proof of Work Simulator</h2>
+                <p class="text-gray-600">Miners compete to find a valid hash with difficulty adjustment</p>
+            </div>
+
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="mineBlock()">
+                    ⛏️ Mine Block
+                </button>
+                <button class="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-gray-300 transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="resetPoW()">
+                    🔄 Reset
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">📊 Mining Statistics</h3>
+                    <div id="pow-stats" class="space-y-4">
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600">
+                            <span class="font-semibold text-gray-700">Difficulty:</span>
+                            <span class="text-2xl font-bold text-indigo-600" id="pow-difficulty">4</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600">
+                            <span class="font-semibold text-gray-700">Blockchain Length:</span>
+                            <span class="text-2xl font-bold text-indigo-600" id="pow-length">1</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600">
+                            <span class="font-semibold text-gray-700">Last Mining Time:</span>
+                            <span class="text-2xl font-bold text-indigo-600" id="pow-time">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">👷 Miners</h3>
+                    <div id="pow-miners" class="space-y-4">
+                        <!-- Miners will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">⛓️ Blockchain</h3>
+                <div id="pow-blockchain" class="space-y-3 max-h-[500px] overflow-y-auto p-2">
+                    <!-- Blockchain will be visualized here -->
+                </div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl hidden" id="pow-result">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">📋 Last Mining Result</h3>
+                <div id="pow-result-content"></div>
+            </div>
+        </div>
+
+        <!-- PoS Tab Content -->
+        <div id="pos-tab" class="tab-content hidden animate-fade-in">
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 mb-6 shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">💰 Proof of Stake Simulator</h2>
+                <p class="text-gray-600">Validators are selected based on their stake amount</p>
+            </div>
+
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="validateBlock()">
+                    ✅ Validate Block
+                </button>
+                <button class="px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="runPoSTest()">
+                    🧪 Run 100 Validations Test
+                </button>
+                <button class="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-gray-300 transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="resetPoS()">
+                    🔄 Reset
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">👥 Validators</h3>
+                    <div id="pos-validators" class="space-y-4">
+                        <!-- Validators will be populated here -->
+                    </div>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">📊 Validation Statistics</h3>
+                    <div id="pos-chart-container" class="min-h-[300px]">
+                        <canvas id="pos-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6 hidden" id="pos-result">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">📋 Validation Result</h3>
+                <div id="pos-result-content"></div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6 hidden" id="pos-test-result">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">🧪 Test Results (100 Validations)</h3>
+                <p class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg text-blue-800 mb-6">
+                    This test verifies that the 50-coin validator wins approximately 50% of the time
+                </p>
+                <div id="pos-test-content"></div>
+            </div>
+        </div>
+
+        <!-- Fork Tab Content -->
+        <div id="fork-tab" class="tab-content hidden animate-fade-in">
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 mb-6 shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">🔱 Fork Resolution Simulator</h2>
+                <p class="text-gray-600">Simulate network latency causing forks and resolve using Longest Chain Rule</p>
+            </div>
+
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="createFork()">
+                    🔱 Create Fork
+                </button>
+                <button class="px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="resolveFork()">
+                    ⚖️ Resolve Fork
+                </button>
+                <button class="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-gray-300 transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="resetFork()">
+                    🔄 Reset
+                </button>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6" id="fork-chains-card">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">🔗 Current Chains</h3>
+                <div id="fork-chains" class="space-y-8">
+                    <!-- Chains will be visualized here -->
+                </div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6 hidden" id="fork-result">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">📋 Fork Event Details</h3>
+                <div id="fork-result-content"></div>
+            </div>
+
+            <div class="bg-white/95 backdrop-blur-lg rounded-2xl p-8 shadow-xl mb-6 hidden" id="fork-resolution">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">⚖️ Resolution Result</h3>
+                <div id="fork-resolution-content"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-white/95 backdrop-blur-lg rounded-2xl p-6 shadow-xl text-center mt-8">
+            <p class="text-gray-600">Made with ❤️ for Blockchain Course | Day 3 Assignment</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
