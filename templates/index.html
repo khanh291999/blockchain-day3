@@ -99,9 +99,17 @@
                             <span class="font-semibold text-gray-700">Blockchain Length:</span>
                             <span class="text-2xl font-bold text-indigo-600" id="pow-length">1</span>
                         </div>
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-purple-600">
+                            <span class="font-semibold text-gray-700">Target Time:</span>
+                            <span class="text-lg font-bold text-purple-600" id="pow-target-time">🎯 2.0s</span>
+                        </div>
                         <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600">
-                            <span class="font-semibold text-gray-700">Last Mining Time:</span>
-                            <span class="text-2xl font-bold text-indigo-600" id="pow-time">-</span>
+                            <span class="font-semibold text-gray-700">Mining Time:</span>
+                            <span class="text-lg font-bold text-indigo-600" id="pow-mining-time">⏱️ -</span>
+                        </div>
+                        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600">
+                            <span class="font-semibold text-gray-700">Difficulty Adjustment:</span>
+                            <span class="text-lg font-bold text-indigo-600" id="pow-adjustment">⏳ Chưa có</span>
                         </div>
                     </div>
                 </div>
@@ -138,8 +146,14 @@
                 <button class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="validateBlock()">
                     ✅ Validate Block
                 </button>
-                <button class="px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="runPoSTest()">
-                    🧪 Run 100 Validations Test
+                <button class="px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="runPoSTest(100)">
+                    🧪 Run 100 Tests
+                </button>
+                <button class="px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="runPoSTest(10000)">
+                    🚀 Run 10K Tests
+                </button>
+                <button class="px-6 py-4 bg-gradient-to-r from-green-700 to-emerald-800 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="runPoSTest(100000)">
+                    ⚡ Run 100K Tests
                 </button>
                 <button class="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-gray-300 transition-all duration-300 hover:-translate-y-1 active:translate-y-0" onclick="resetPoS()">
                     🔄 Reset
@@ -215,7 +229,6 @@
 
         <!-- Footer -->
         <footer class="bg-white/95 backdrop-blur-lg rounded-2xl p-6 shadow-xl text-center mt-8">
-            <p class="text-gray-600">Made with ❤️ for Blockchain Course | Day 3 Assignment</p>
         </footer>
     </div>
 
