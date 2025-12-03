@@ -460,16 +460,3 @@ Giải quyết fork bằng Longest Chain Rule
 - **Fork**: Longest chain rule với giải thích chi tiết
 - **README**: Giải thích code từng module
 
----
-
-## 🤝 Đóng góp
-
-Dự án được xây dựng cho môn học Blockchain - Day 3 Assignment
-
-## 📧 Liên hệ
-
-Nếu có vấn đề, hãy tạo issue hoặc liên hệ qua email.
-
----
-
-Made with ❤️ for Blockchain Course | Day 3 Assignment
