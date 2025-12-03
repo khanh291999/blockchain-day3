@@ -37,26 +37,32 @@ class Miner:
         self.hash_power = hash_power  # Số lượng hash mỗi lần thử
         self.blocks_mined = 0
         
-    def mine_block(self, block: Block, difficulty: int) -> tuple[Block, int]:
+    def mine_block(self, block: Block, difficulty: int) -> tuple[Block, int, float]:
         """
         Đào một block bằng cách tìm nonce tạo ra hash với 'difficulty' số 0 đứng đầu
-        Trả về: (block_đã_đào, số_lần_thử)
+        Trả về: (block_đã_đào, số_lần_thử, thời_gian)
         """
         target = '0' * difficulty
         attempts = 0
+        start_time = time.time()
         
+        # Mỗi miner thử với tốc độ khác nhau dựa trên hash_power
+        # Hash power cao = thử nhiều hơn trong cùng thời gian
         while True:
-            block.nonce = random.randint(0, 1000000)
+            # Thử một nonce ngẫu nhiên
+            block.nonce = random.randint(0, 10000000)
             block.hash = block.calculate_hash()
             attempts += 1
             
+            # Kiểm tra xem hash có đạt yêu cầu không
             if block.hash.startswith(target):
-                self.blocks_mined += 1
-                return block, attempts
+                elapsed_time = time.time() - start_time
+                return block, attempts, elapsed_time
             
-            # Mô phỏng hash power - miner mạnh hơn có thể thử nhiều nonce hơn
-            if attempts % self.hash_power == 0:
-                time.sleep(0.001)  # Delay nhỏ để mô phỏng
+            # Mô phỏng tốc độ hash dựa trên hash_power
+            # Hash power thấp = phải chờ lâu hơn giữa các lần thử
+            if attempts % max(1, (200 - self.hash_power)) == 0:
+                time.sleep(0.0001)  # Delay rất nhỏ
 
 
 class PoWSimulator:
@@ -66,7 +72,6 @@ class PoWSimulator:
         self.miners: List[Miner] = []
         self.difficulty = 4
         self.target_time = 2.0  # Mục tiêu 2 giây mỗi block
-        self.recent_block_times: List[float] = []
         
     def create_genesis_block(self):
         """Tạo block đầu tiên trong blockchain"""
@@ -81,32 +86,25 @@ class PoWSimulator:
     
     def adjust_difficulty(self, mining_time: float):
         """
-        Điều chỉnh độ khó: Nếu block được tìm thấy quá nhanh, tăng độ khó
+        Điều chỉnh độ khó ngay lập tức dựa trên thời gian đào block hiện tại
         """
-        self.recent_block_times.append(mining_time)
+        # Điều chỉnh ngay sau mỗi block, không cần chờ 3 blocks
         
-        # Chỉ giữ lại 3 thời gian block gần nhất
-        if len(self.recent_block_times) > 3:
-            self.recent_block_times.pop(0)
-        
-        if len(self.recent_block_times) >= 3:
-            avg_time = sum(self.recent_block_times) / len(self.recent_block_times)
-            
-            # Nếu thời gian trung bình nhỏ hơn 50% mục tiêu, tăng độ khó
-            if avg_time < self.target_time * 0.5:
-                self.difficulty += 1
-                return f"⬆️ Độ khó tăng lên {self.difficulty}"
-            # Nếu thời gian trung bình lớn hơn 200% mục tiêu, giảm độ khó
-            elif avg_time > self.target_time * 2.0 and self.difficulty > 1:
-                self.difficulty -= 1
-                return f"⬇️ Độ khó giảm xuống {self.difficulty}"
+        # Nếu thời gian đào nhỏ hơn 50% mục tiêu, tăng độ khó
+        if mining_time < self.target_time * 0.5:
+            self.difficulty += 1
+            return f"⬆️ Độ khó tăng lên {self.difficulty}"
+        # Nếu thời gian đào lớn hơn 200% mục tiêu, giảm độ khó
+        elif mining_time > self.target_time * 2.0 and self.difficulty > 1:
+            self.difficulty -= 1
+            return f"⬇️ Độ khó giảm xuống {self.difficulty}"
         
         return None
     
     def simulate_mining_race(self) -> Dict:
         """
-        Mô phỏng cuộc đua giữa các miner để tìm block tiếp theo
-        Trả về thông tin chi tiết về quá trình đào
+        Mô phỏng cuộc đua THỰC SỰ giữa các miner để tìm block tiếp theo
+        Tất cả miners cùng đua, ai tìm ra nonce trước thì thắng
         """
         if not self.blockchain:
             self.create_genesis_block()
@@ -119,17 +117,68 @@ class PoWSimulator:
             previous_hash=last_block.hash
         )
         
-        # Chọn ngẫu nhiên miner chiến thắng (có trọng số theo hash power)
-        total_hash_power = sum(m.hash_power for m in self.miners)
-        winner = random.choices(
-            self.miners, 
-            weights=[m.hash_power for m in self.miners]
-        )[0]
+        # ✅ ĐÚNG: Mô phỏng cuộc đua thực sự
+        # Mỗi miner có một bản copy riêng của block để đào
+        import threading
+        import copy
         
-        start_time = time.time()
-        mined_block, attempts = winner.mine_block(new_block, self.difficulty)
-        mining_time = time.time() - start_time
+        race_results = []
+        race_lock = threading.Lock()
+        race_finished = threading.Event()
         
+        def mine_worker(miner, block_copy):
+            """Worker thread cho mỗi miner"""
+            try:
+                mined_block, attempts, elapsed = miner.mine_block(block_copy, self.difficulty)
+                
+                with race_lock:
+                    if not race_finished.is_set():
+                        # Miner này thắng!
+                        race_finished.set()
+                        race_results.append({
+                            'miner': miner,
+                            'block': mined_block,
+                            'attempts': attempts,
+                            'elapsed': elapsed
+                        })
+            except Exception as e:
+                pass
+        
+        # Khởi động tất cả miners cùng lúc
+        threads = []
+        for miner in self.miners:
+            block_copy = Block(
+                new_block.index,
+                new_block.timestamp,
+                new_block.data,
+                new_block.previous_hash
+            )
+            thread = threading.Thread(target=mine_worker, args=(miner, block_copy))
+            thread.daemon = True
+            threads.append(thread)
+            thread.start()
+        
+        # Đợi có miner thắng
+        race_finished.wait(timeout=30)  # Timeout 30s
+        
+        # Dừng tất cả threads khác
+        for thread in threads:
+            thread.join(timeout=0.1)
+        
+        if not race_results:
+            # Fallback nếu không có kết quả
+            return {'error': 'Mining timeout'}
+        
+        result = race_results[0]
+        winner = result['miner']
+        mined_block = result['block']
+        attempts = result['attempts']
+        mining_time = result['elapsed']
+        
+        # Cập nhật thống kê
+        winner.blocks_mined += 1
+        
+        # Thêm block vào blockchain
         self.blockchain.append(mined_block)
         
         # Kiểm tra điều chỉnh độ khó
