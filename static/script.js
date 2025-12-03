@@ -133,9 +133,56 @@ function updatePoWStats(blockchain) {
     document.getElementById('pow-length').textContent = length;
 }
 
+function updateDifficultyAdjustment(adjustment) {
+    const element = document.getElementById('pow-adjustment');
+    if (adjustment) {
+        element.innerHTML = adjustment;
+        element.classList.remove('text-indigo-600');
+        element.classList.add('text-green-600');
+    }
+}
+
 function showPoWResult(result) {
     const card = document.getElementById('pow-result');
     const content = document.getElementById('pow-result-content');
+    
+    // Update mining time with status
+    const targetTime = 2.0;
+    const miningTime = result.mining_time;
+    const timeElement = document.getElementById('pow-mining-time');
+    
+    let timeStatus = '';
+    let timeColor = 'text-indigo-600';
+    
+    if (miningTime < targetTime * 0.5) {
+        timeStatus = '⚡ Quá nhanh!';
+        timeColor = 'text-red-600';
+    } else if (miningTime < targetTime) {
+        timeStatus = '✅ Ổn định';
+        timeColor = 'text-green-600';
+    } else if (miningTime < targetTime * 2.0) {
+        timeStatus = '⏱️ Bình thường';
+        timeColor = 'text-blue-600';
+    } else {
+        timeStatus = '🐌 Chậm';
+        timeColor = 'text-orange-600';
+    }
+    
+    timeElement.innerHTML = `${miningTime}s - ${timeStatus}`;
+    timeElement.className = `text-lg font-bold ${timeColor}`;
+    
+    // Update difficulty adjustment in stats section
+    if (result.adjustment) {
+        updateDifficultyAdjustment(result.adjustment);
+    } else {
+        const element = document.getElementById('pow-adjustment');
+        element.innerHTML = '✅ Giữ nguyên';
+        element.classList.remove('text-green-600');
+        element.classList.add('text-indigo-600');
+    }
+    
+    // Update difficulty display
+    document.getElementById('pow-difficulty').textContent = result.difficulty;
     
     content.innerHTML = `
         <div class="p-4 bg-gray-50 rounded-xl border-l-4 border-indigo-600 mb-3">
@@ -224,11 +271,17 @@ async function validateBlock() {
     }
 }
 
-async function runPoSTest() {
+async function runPoSTest(count = 100) {
     const btn = event.target;
+    const originalText = btn.textContent;
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed', 'animate-pulse-slow');
-    btn.textContent = '🧪 Running Test...';
+    
+    // Format count with commas
+    const formattedCount = count.toLocaleString();
+    btn.textContent = `🧪 Running ${formattedCount} tests...`;
+    
+    const startTime = Date.now();
     
     try {
         const response = await fetch(`${API_BASE}/pos/validate-multiple`, {
@@ -236,11 +289,14 @@ async function runPoSTest() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ count: 100 })
+            body: JSON.stringify({ count: count })
         });
         const data = await response.json();
         
         if (data.success) {
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+            data.data.duration = duration;
+            data.data.count = count;
             showPoSTestResult(data.data);
             await loadPoSData();
         }
@@ -250,7 +306,7 @@ async function runPoSTest() {
     } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-50', 'cursor-not-allowed', 'animate-pulse-slow');
-        btn.textContent = '🧪 Run 100 Validations Test';
+        btn.textContent = originalText;
     }
 }
 
@@ -352,10 +408,12 @@ function showPoSTestResult(result) {
     const content = document.getElementById('pos-test-content');
     
     const stats = result.statistics;
+    const formattedCount = result.count ? result.count.toLocaleString() : result.total_validations.toLocaleString();
+    const duration = result.duration ? ` in ${result.duration}s` : '';
     
     content.innerHTML = `
         <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg text-green-800 mb-4">
-            ✅ Test completed! ${result.total_validations} validations simulated.
+            ✅ Test completed! ${formattedCount} validations simulated${duration}.
         </div>
         ${Object.entries(stats).map(([name, data]) => {
             const diff = Math.abs(data.percentage - data.expected_percentage);
