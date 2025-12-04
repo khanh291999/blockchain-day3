@@ -147,24 +147,30 @@ function showPoWResult(result) {
     const content = document.getElementById('pow-result-content');
     
     // Update mining time with status
-    const targetTime = 2.0;
+    const targetMin = 1.0;  // Minimum target (50% of 2.0s)
+    const targetMax = 4.0;  // Maximum target (200% of 2.0s)
+    const targetIdeal = 2.0; // Ideal target
     const miningTime = result.mining_time;
     const timeElement = document.getElementById('pow-mining-time');
     
     let timeStatus = '';
     let timeColor = 'text-indigo-600';
     
-    if (miningTime < targetTime * 0.5) {
-        timeStatus = '⚡ Quá nhanh!';
+    if (miningTime < targetMin) {
+        timeStatus = '⚡ Quá nhanh! (< 1.0s)';
         timeColor = 'text-red-600';
-    } else if (miningTime < targetTime) {
-        timeStatus = '✅ Ổn định';
-        timeColor = 'text-green-600';
-    } else if (miningTime < targetTime * 2.0) {
-        timeStatus = '⏱️ Bình thường';
-        timeColor = 'text-blue-600';
+    } else if (miningTime >= targetMin && miningTime <= targetMax) {
+        // Trong vùng chấp nhận (1.0s - 4.0s)
+        if (miningTime >= targetIdeal * 0.8 && miningTime <= targetIdeal * 1.2) {
+            // Rất gần với ideal (1.6s - 2.4s)
+            timeStatus = '✅ Hoàn hảo';
+            timeColor = 'text-green-600';
+        } else {
+            timeStatus = '✅ Ổn định';
+            timeColor = 'text-blue-600';
+        }
     } else {
-        timeStatus = '🐌 Chậm';
+        timeStatus = '🐌 Quá chậm! (> 4.0s)';
         timeColor = 'text-orange-600';
     }
     
